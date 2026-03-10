@@ -1,0 +1,11 @@
+program TestErrores;
+var
+    numero : intgr;
+    nombre : string;
+begin
+    numero = 10;
+    if (numero <) nombre := 'error';
+    (* Comentario correcto *)
+    ( Comentario que falla *)
+    x : strg;
+end.
