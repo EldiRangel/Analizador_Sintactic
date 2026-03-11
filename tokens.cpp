@@ -1,4 +1,3 @@
-
 #include "tokens.h"
 #include <iostream>
 #include <fstream>
@@ -7,106 +6,70 @@
 using namespace std;
 
 tokens::tokens() {
-    tiposValidos[0] = "string"; tiposValidos[1] = "integer";
-    tiposValidos[2] = "boolean"; tiposValidos[3] = "real";
-    tiposValidos[4] = "char";
-    totalVariables = 0;
     tieneProgram = false;
-    enSeccionVar = false;
+    tieneVar = false;
     contadorBeginEnd = 0;
     comentarioMultilinea = false;
-}
-
-bool tokens::esTipoValido(string palabra) {
-    for (int i = 0; i < 5; i++) {
-        if (palabra == tiposValidos[i]) return true;
-    }
-    return false;
-}
-
-void tokens::registrarVariable(string nombre, string tipo, int linea) {
-    for(int i = 0; i < totalVariables; i++) {
-        if(tablaSimbolos[i].nombre == nombre) {
-            cout << "Linea " << linea << ": Error - Variable '" << nombre << "' ya declarada." << endl;
-            return;
-        }
-    }
-    if(totalVariables < 100) {
-        tablaSimbolos[totalVariables].nombre = nombre;
-        tablaSimbolos[totalVariables].tipo = tipo;
-        totalVariables++;
-    }
-}
-
-string tokens::obtenerTipoVariable(string nombre) {
-    for(int i = 0; i < totalVariables; i++) {
-        if(tablaSimbolos[i].nombre == nombre) return tablaSimbolos[i].tipo;
-    }
-    return "desconocido";
 }
 
 void tokens::analizarArchivo(string ruta) {
     ifstream archivo(ruta);
     if (!archivo.is_open()) return;
+
     string linea;
     int numLinea = 1;
     while (getline(archivo, linea)) {
         revisarLinea(linea, numLinea);
         numLinea++;
     }
-    if (!tieneProgram) cout << "Error Global: Falta 'program'." << endl;
-    if (contadorBeginEnd != 0) cout << "Error Global: Bloques begin/end desbalanceados." << endl;
+
+    if (!tieneProgram) cout << "Error Estructural: No se encontro la palabra clave 'program'." << endl;
+    if (contadorBeginEnd > 0) cout << "Error Estructural: Faltan " << contadorBeginEnd << " cierres de bloque 'end'." << endl;
+    if (contadorBeginEnd < 0) cout << "Error Estructural: Hay 'end' de mas en el archivo." << endl;
+
     archivo.close();
 }
 
 void tokens::revisarLinea(string linea, int numLinea) {
     if (linea.empty()) return;
 
-    // Manejo de comentarios multilinea (* ... *)
     if (linea.find("(*") != string::npos) comentarioMultilinea = true;
     if (comentarioMultilinea) {
         if (linea.find("*)") != string::npos) comentarioMultilinea = false;
-        return; 
+        return;
     }
 
     if (linea.find("program") != string::npos) tieneProgram = true;
+    if (linea.find("var") != string::npos) tieneVar = true;
+    if (linea.find("begin") != string::npos) contadorBeginEnd++;
     
-    // Control de secciones
-    if (linea.find("var") != string::npos) { enSeccionVar = true; return; }
-    if (linea.find("begin") != string::npos) { enSeccionVar = false; contadorBeginEnd++; }
     if (linea.find("end") != string::npos) {
         contadorBeginEnd--;
-        if (linea.find("end;") == string::npos && linea.find("end.") == string::npos)
-            cout << "Linea " << numLinea << ": Error - Falta ';' o '.' despues de end." << endl;
-    }
-
-    // Registro de variables (Analisis Semantico)
-    if (enSeccionVar && linea.find(":") != string::npos) {
-        stringstream ss(linea);
-        string nombre, puntos, tipo;
-        ss >> nombre >> puntos >> tipo;
-        if (tipo.back() == ';') tipo.pop_back();
-        if (esTipoValido(tipo)) registrarVariable(nombre, tipo, numLinea);
-        else cout << "Linea " << numLinea << ": Error - Tipo '" << tipo << "' invalido." << endl;
-    }
-
-    // Uso de variables y validacion de tipos
-    size_t posAsignacion = linea.find(":=");
-    if (posAsignacion != string::npos) {
-        stringstream ss(linea.substr(0, posAsignacion));
-        string varIzquierda;
-        ss >> varIzquierda;
-        
-        string tipoIzquierdo = obtenerTipoVariable(varIzquierda);
-        if (tipoIzquierdo == "desconocido") {
-            cout << "Linea " << numLinea << ": Error - Variable '" << varIzquierda << "' no declarada." << endl;
+        size_t posEnd = linea.find("end");
+        if (linea.find(".", posEnd) == string::npos && linea.find(";", posEnd) == string::npos) {
+            cout << "Linea " << numLinea << ": Error sintactico - 'end' debe finalizar con '.' o ';'." << endl;
         }
+    }
 
-        // Check basico de punto y coma
-        if (linea.back() != ';' && linea.find("begin") == string::npos && linea.find("end") == string::npos) {
-            // Ignorar espacios en blanco al final
-            size_t ultimo = linea.find_last_not_of(" ");
-            if (linea[ultimo] != ';') cout << "Linea " << numLinea << ": Error - Falta ';'." << endl;
+    if (linea.find("if") != string::npos && linea.find("then") == string::npos) {
+        cout << "Linea " << numLinea << ": Error sintactico - Sentencia 'if' sin su clausula 'then'." << endl;
+    }
+
+    if (linea.find(":=") == string::npos && linea.find("=") != string::npos) {
+        if (linea.find("if") == string::npos && linea.find("program") == string::npos) {
+            cout << "Linea " << numLinea << ": Error sintactico - Uso de '=' en lugar de ':=' para asignacion." << endl;
+        }
+    }
+
+    size_t ultimo = linea.find_last_not_of(" \t\n\r");
+    if (ultimo != string::npos) {
+        char c = linea[ultimo];
+        if (c != ';' && c != '.' && 
+            linea.find("begin") == string::npos && 
+            linea.find("var") == string::npos && 
+            linea.find("then") == string::npos &&
+            linea.find("else") == string::npos) {
+            cout << "Linea " << numLinea << ": Error sintactico - Se esperaba ';' al final de la linea." << endl;
         }
     }
 }
