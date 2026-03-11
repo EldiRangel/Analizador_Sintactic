@@ -22,10 +22,7 @@ bool tokens::esTipoValido(string palabra) {
 
 void tokens::analizarArchivo(string ruta) {
     ifstream archivo(ruta);
-    if (!archivo.is_open()) {
-        cout << "No se pudo abrir el archivo " << ruta << endl;
-        return;
-    }
+    if (!archivo.is_open()) return;
 
     string linea;
     int numLinea = 1;
@@ -38,41 +35,43 @@ void tokens::analizarArchivo(string ruta) {
 
 void tokens::revisarLinea(string linea, int numLinea) {
     if (linea.find("(*") == string::npos && linea.find("*)") != string::npos) {
-        cout << "Linea " << numLinea << ": Error - Cierre '*)' sin apertura." << endl;
-    }
-
-    if (linea.find("(") != string::npos && linea.find("*)") != string::npos && linea.find("(*") == string::npos) {
-         cout << "Linea " << numLinea << ": Error - Se detecto '(' pero se esperaba '(*' para el comentario." << endl;
+        cout << "Linea " << numLinea << ": Error - Simbolo '*)' sin apertura." << endl;
     }
 
     size_t posDosPuntos = linea.find(":");
     if (posDosPuntos != string::npos) {
-        stringstream ss(linea.substr(posDosPuntos + 1));
-        string tipo;
-        ss >> tipo;
+        string despuesDePuntos = linea.substr(posDosPuntos + 1);
+        stringstream ss(despuesDePuntos);
+        string palabra;
         
-        if (!tipo.empty() && tipo.back() == ';') tipo.pop_back();
-
-        if (tipo == "strg") {
-            cout << "Linea " << numLinea << ": Error lexico - 'strg' no es un tipo valido. Sugerencia: 'string'." << endl;
-        } else if (!tipo.empty() && !esTipoValido(tipo) && tipo.find("'") == string::npos && tipo.find("=") == string::npos) {
-            // Analisis de tipos desconocidos
+        if (ss >> palabra) {
+            if (palabra.back() == ';') palabra.pop_back();
+            
+            if (!palabra.empty() && !esTipoValido(palabra) && 
+                palabra.find("'") == string::npos && 
+                palabra != ":=" && palabra != "=") {
+                cout << "Linea " << numLinea << ": Error - Tipo '" << palabra << "' no reconocido." << endl;
+            }
         }
     }
 
     size_t posIgual = linea.find("=");
     if (posIgual != string::npos) {
-        if (posIgual == 0 || linea[posIgual - 1] != ':') {
-            if (linea.find("if") == string::npos && linea.find("program") == string::npos && linea.find(">") == string::npos && linea.find("<") == string::npos) {
-                cout << "Linea " << numLinea << ": Error sintactico - Asignacion invalida. Se esperaba ':='." << endl;
-            }
+        bool tieneDosPuntosAntes = (posIgual > 0 && linea[posIgual-1] == ':');
+        bool esComparacion = (linea.find("if") != string::npos || linea.find("<") != string::npos || linea.find(">") != string::npos);
+        
+        if (!tieneDosPuntosAntes && !esComparacion && linea.find("program") == string::npos) {
+            cout << "Linea " << numLinea << ": Error - Asignacion invalida. Se esperaba ':='." << endl;
         }
     }
 
     if (linea.find(">") != string::npos || linea.find("<") != string::npos) {
         size_t posOp = linea.find_first_of("><");
-        if (posOp + 1 < linea.length() && linea[posOp + 1] == ')') {
-            cout << "Linea " << numLinea << ": Error sintactico - Falta operando despues del operador relacional." << endl;
+        string resto = linea.substr(posOp + 1);
+        stringstream ss(resto);
+        string siguiente;
+        if (!(ss >> siguiente) || siguiente == ")") {
+            cout << "Linea " << numLinea << ": Error - Operador sin operando derecho." << endl;
         }
     }
 }
