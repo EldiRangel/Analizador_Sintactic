@@ -1,8 +1,16 @@
-#include <iostream>
 #include "tokens.h"
+#include <iostream>
+
+using namespace std;
 
 int main() {
     tokens analizador;
-    analizador.analizarArchivo("codigo.txt");
+
+    string nombreArchivo = "codigo.txt";
+
+    analizador.analizarArchivo(nombreArchivo);
+
+    cout << "Analisis completado" << endl;
+
     return 0;
 }

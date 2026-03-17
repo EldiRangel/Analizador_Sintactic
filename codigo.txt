@@ -1,11 +1,18 @@
-program TestErrores;
-var
-    numero : intgr;
-    nombre : string;
-begin
-    numero = 10;
-    if (numero <) nombre := 'error';
-    (* Comentario correcto *)
-    ( Comentario que falla *)
-    x : strg;
+progra Proyecto;
+
+vor
+    a, b : integer;
+    resultado : real;
+
+begun
+    a := 10
+    b := 5;
+
+    of (a > b) then
+        resultado := a / b;
+    if (b < 5) then
+    begin
+        a := b + 1;
+        a := 20;
+    end
 end.
