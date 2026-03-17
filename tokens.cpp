@@ -16,6 +16,7 @@ tokens::tokens() {
     tieneProgram = false;
     tieneVar = false;
     contadorBeginEnd = 0;
+    errorEncontrado = false;
 }
 
 bool tokens::esTipoValido(string palabra) {
@@ -36,19 +37,30 @@ void tokens::analizarArchivo(const string& ruta) {
             ultimaLinea = linea;
         }
         revisarLinea(linea, numLinea);
+        if (errorEncontrado) break;
         numLinea++;
     }
 
-    if (!tieneProgram) cout << "Error Global: Falta 'program'." << endl;
-    if (ultimaLinea.find("end.") == string::npos) {
-        cout << "Error Global: El programa debe terminar con 'end.' (punto final)." << endl;
+    if (!errorEncontrado) {
+        if (!tieneProgram) {
+            cout << "Error Global: Falta 'program'." << endl;
+            errorEncontrado = true;
+        }
+        if (ultimaLinea.find("end.") == string::npos) {
+            cout << "Error Global: El programa debe terminar con 'end.' (punto final)." << endl;
+            errorEncontrado = true;
+        }
+        if (contadorBeginEnd != 0) {
+            cout << "Error Global: Bloques desbalanceados." << endl;
+            errorEncontrado = true;
+        }
     }
-    if (contadorBeginEnd != 0) cout << "Error Global: Bloques desbalanceados." << endl;
 
     archivo.close();
 }
 
 void tokens::revisarLinea(string linea, int numLinea) {
+    if (errorEncontrado) return;
     if (linea.empty()) return;
 
     stringstream ss(linea);
@@ -85,6 +97,8 @@ void tokens::revisarLinea(string linea, int numLinea) {
             !esTipoValido(limpia) && limpia != "a" && limpia != "b" && limpia != "resultado") {
             
             cout << "Linea " << numLinea << ": Error sintactico - Palabra '" << limpia << "' invalida." << endl;
+            errorEncontrado = true;
+            return;
         }
     }
 
@@ -93,6 +107,8 @@ void tokens::revisarLinea(string linea, int numLinea) {
        
         if (linea.find("if") == string::npos && linea.find("program") == string::npos && linea.find("then") == string::npos) {
             cout << "Linea " << numLinea << ": Error - Use ':=' para asignar." << endl;
+            errorEncontrado = true;
+            return;
         }
     }
 
@@ -108,6 +124,8 @@ void tokens::revisarLinea(string linea, int numLinea) {
             linea.find("end") == string::npos) { 
             
             cout << "Linea " << numLinea << ": Error sintactico - Falta ';' al final." << endl;
+            errorEncontrado = true;
+            return;
         }
     }
 }

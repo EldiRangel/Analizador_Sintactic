@@ -1,14 +1,14 @@
-progra Proyecto;
+program Proyecto;
 
-vor
+var
     a, b : integer;
     resultado : real;
 
-begun
-    a := 10
+begin
+    a := 10;
     b := 5;
 
-    of (a > b) then
+    if (a > b) then
         resultado := a / b;
     if (b < 5) then
     begin

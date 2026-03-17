@@ -11,6 +11,7 @@ private:
     bool tieneProgram;
     bool tieneVar;
     int contadorBeginEnd;
+    bool errorEncontrado;
 
     // Métodos auxiliares de validación
     bool esTipoValido(string palabra);
